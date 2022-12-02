@@ -1,0 +1,33 @@
+ORM(object-relational mapping) обьекто - реляционное отображение
+
+from django.db import models 					таблица в БД представляется классом
+
+class НАЗВАНИЕКЛАССА(models.Model):				Сам класс наследуеться от models.Model
+    title = models.CharField(max_length=255)			Поля прописываются исходя из необходимости столбцов в таблице
+    content = models.TextField(blank=True)
+    photo = models.ImageField(upload_to="photos/%Y/%m/%d/")	(upload_to="photos/%Y/%m/%d/") можно определить куда загружать контент и сделать это например каждый раз в отдельные папки с разбивкой по датам
+    time_create = models.DateTimeField(auto_now_add=True)
+    time_update = models.DateTimeField(auto_now=True)
+    is_published = models.BooleanField(default=True)
+
+Типы полей для класса табилцы можно посмотреть в оф докуменатции
+https://django.fun/ru/docs/django/4.1/ref/models/fields/
+
+Если мы хотим что бы сам конеттн так эе подгружался куда и когда нужно (в БД храниться только путь к файлам а не сами файлы)
+Нужно определить константы
+MEDIA_ROOT = os.path.join(BASE_DIR, "media") базовый каталог проекта +  папка media
+MEDIA_URL = "/media/"
+
+В отладочном режие так же необходимо добавить в urls проекта
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+-----------------------------------------------------------------------------------
+После добавления новой модели необходимо совершить миграцию
+В каталоге проекта в терминале прописываем 
+
+python manage.py makemigrations
+
+можно посмотреть sql запрос который будет выполнен при миграции с помощью команды python manage.py sqlmigrate НАЗВАНИЕМОДЕЛИ 0001 номер берется из папки migrations с файлов миграций вида 0001_initial.py
+
+Выполнить миграцию можно с помощью команды 
+python manage.py migrate

@@ -1,0 +1,22 @@
+Например суммирование 
+sum(iterable, attribute=None, start=0) 
+
+cars = Какой то список со словарем[{'model':'car', 'price':'25000'},{'':'', '':''},{'':'', '':''}]
+
+
+tpl = "Сумма чего то там равна {{ cs | sum(attribute='price') }}" 
+
+tm = Template(tpl)
+
+msg = tm.render(cs = cars)
+
+print(msg)
+
+
+jinja.palletsprojects.com/en/2.11.x/templates/  Здесь можно почитать про все остальные фильтры доступны
+
+Для условного цикла можно применять фильтры следующим образом
+
+{% for i in список или словарь -%}
+{% filter lower %} {{ u.имя атрибута }} {% endfilter %}		после фильтра подставляем то что нужно сделать с тем что указываем в {{}}
+{% endfor -%}

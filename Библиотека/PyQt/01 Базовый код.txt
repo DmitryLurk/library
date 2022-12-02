@@ -1,0 +1,38 @@
+После создания дизайна базовый код для активации приложения выглядит следующим образом
+
+from PyQt5 import uic
+from PyQt5.QtWidgets import QApplication
+
+Form, Window = uic.loadUiType("PROJECT_NAME.ui")
+
+app = QApplication([])
+window = Window()
+form = Form()
+form.setupUi(window)
+window.show()
+app.exec()
+
+Но как правило для инициализации приложения используют класс
+
+from PyQt5 import uic, QtWidgets
+
+
+Form, Window = uic.loadUiType("PROJECT_NAME.ui") #
+
+class Ui(QtWidgets.QDialog, Form):
+    def __init__(self):
+        super(Ui, self).__init__()
+        self.setupUi(self)
+        self.pushButton.clicked.connect(self.printButtonPressed) Здесь что происходит при нажатии кнопок
+        self.label.setText("Hello") 
+
+    def printButtonPressed(self): А то что должно происходить при нажатии кнопок можно описать в функции класса
+        print("pressed")
+        
+if __name__ == "__main__":	Запуск приложения осуществляется через создание экземпляра класса
+    import sys
+    
+    app = QtWidgets.QApplication(sys.argv)
+    w = Ui()
+    w.show()   Функция show делает окно интерфейса видимым
+    sys.exit(app.exec()) 

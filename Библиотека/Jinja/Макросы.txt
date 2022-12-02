@@ -1,0 +1,16 @@
+С помощью macro можно создать переиспользуемую функцию
+from jinja2 import Template
+
+html = '''
+{% macro input(name, value='', type='text', size=20) -%}					Здесь у нас заранее определены все кроме одного атрибуты по умолчанию
+    <input type="{{ type }}" name="{{ name }}" value="{{ value | e }}" size="{{ size }}">	Здесь показано как это будет рендериться
+{%- endmacro %}
+
+<p>{{ input('username') }} здесь наглядно видно что написанный выше кусок кода мы переиспользуем для вставки значения только того что небыло прописано по умолчанию
+<p>{{ input('email') }}
+<p>{{ input('password') }}
+'''
+tm = Template(html)
+msg = tm.render()
+
+print(msg)
