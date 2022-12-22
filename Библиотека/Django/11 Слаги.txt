@@ -1,2 +1,18 @@
 Слаг это кусок url адреса
 \category\
+Что бы в адресной строке изотображалось то что мы хотим необходимо 
+в модели добавить дополнительное поле slug
+slug = models.SlugField(max_length=255, unique=True, db_index=True, verbose_name="URL")
+verbose_name="URL" - это то что будет отображаться в админ панели как название этого столбца
+
+Что бы сделать автозаполнение слага на основании имени записи нужно прописать в admin.py
+в класс моедли у которой хотите так сделать 
+prepopulated_fields = {"slug": ("name",)}
+
+Далее в urls.py приложения необходимо переписать путь 
+path("post/<slug:post_slug>/", show_post, name="post")
+
+И в Views.py так же необходимо переписать функции представления на слаги там где в них передается id 
+def show_category(request, cat_slug):
+    posts = Women.objects.filter(slug=cat_slug)
+и в моделях путь get absolut url в функции класса 

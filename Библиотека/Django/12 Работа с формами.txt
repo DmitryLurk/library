@@ -1,0 +1,160 @@
+Для добавления форм в приложение в каталоге приложения создают файл forms.py
+где будут описаны все формы
+
+В файле импортируем модуль forms и модели приложения тк будем с ними работать
+from django import forms
+from .models import *
+
+
+Далее прописываем класс нужной нам формы где прописываем все необходимое для заполнения пользователем
+Желательно чтобы атрибуты класса формы назывались так же как и атрибуты модели таблицы БД в которую будет вестись запись
+
+class AddPostForm(forms.Form): 			Наследуемся от базового класса формы
+    title = forms.CharField(max_length=255)	
+    slug = forms.SlugField(max_length=255)
+    content = forms.CharField(widget=forms.Textarea(attrs={'cols': 60, 'rows': 10}))
+    is_published = forms.BooleanField()
+    cat=forms.ModelChoiceField(queryset=Category.objects.all())
+
+Подробнее про определяемы атрибуты можно посмотреть в документации в разделе встроенные поля форм
+
+Далее мы в функции представления (views.py) можем прописать использование нашей формы
+
+def addpage(request):
+    form = AddPostForm()
+    return render(request, 'названиеприложения/addpage.html', {'form': form, 'title': 'Добавление статьи'})
+
+Здесь мы в функции создаем экземпляр класса формы который мы создыли и отправляем его на отображение в созданную нами страну html
+А непосредственно в самой странице addform.html прописываем 
+{% block content %}
+<h1>{{title}}</h1>
+
+<form action="{% url 'add_page' %}" method="post"> в action мы ссылаемся на ту же страницу add_post прописанную в urls.py метод передачи post используется практически всегда
+    {% csrf_token %}				   Этот токен позволяет защититься от атак в случае если на подменном сайте прописана такая же форма
+    {{ form.as_p }}				   as_p() это функция которая отображает все поля нашей формы с нового абзаца не прописываем в самом коде () тк шабонизатор самостоятельно вызовет это функцию
+    <button type="submit">добавить</button>	   Кнопка подтверждения
+</form>
+
+{% endblock%}
+
+В данном виде форма всегда отображается новой пустой
+Но если в заполнении формы произошла ошибка то необходимо возвращать форму для исправления в том виде как ее заполнил пользователь
+Для этого в функции представления необходимо прописать логику отображения формы
+
+def addpage(request):
+    if request.method == 'POST':	В первый раз отображения это условие не сработает тк никаких данных в форме не передается и мы попадем в else условие 
+        form = AddPostForm(request.POST)Но если произошла ошибка то форма отобразица на основании послданных данных
+        if form.is_valid():		Если сервер принял заполнение формы то он 
+            try:
+                Women.objects.create(**form.cleaned_data) Попытается записать в БД введенные в форму данные
+                return redirect('home')			   И перенаправит нас на главную страницу
+            except:
+                form.add_error(None, 'Ошибка добавления поста') Либо выдаст ошибку в случае ошибки
+    else:
+        form = AddPostForm()		Здесь просто формируется стандартная чистая форма
+    return render(request, 'women/addpage.html', {'form': form, 'title': 'Добавление статьи'})
+---------------------------------------------------------------------------------------------------------
+По сути то что описано выше это дублирование кода и когда нам надо сделать форму напрямую связанную с БД и моделью которая у нас уже имеется то нужно
+делать по другому.
+Так же импортируем все что нужно
+from django import forms
+from .models import *
+
+Но в классе формы наследуемся уже от ModelsForm и прописываем там мета класс
+
+class AddPostForm(forms.ModelForm):
+    
+    def __init__(self, *args, **kwargs):				Конструктор наследуем от базового класса
+        super().__init__( *args, **kwargs)
+        self.fields['cat'].empty_label = 'Категория не выбрана' 	И можно переопределить некоторые поля которые требуют корректировки
+
+    class Meta:
+        model = названиемодели	Здесь присваиваем переменной ту модель которую будем связывать с формой
+        fields = '__all__'	Здесь мы наследуем все поля кроме тех что автозаполняются
+	widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-input'}),	В этой переменной указываются стили оформления отдельных полей формы
+            'content': forms.Textarea(attrs={'cols': 60, 'rows': 10})
+        }
+Желательно все же указывать те поля которые нужно унаследовать явно
+fields = ['title', 'slug', 'content', 'is_published', 'cat']
+
+Теперь для того чтобы сохранить заполненную форму в БД в функции представления достаточно просто прописать метод form.save()
+
+def addpage(request):
+    """ Логика if
+        Логика if определяет что если форма открыта в первый раз то она будет пустой
+        Если форма была частично заполнена значит была нажата кнопка "добавить" и
+        request содержит метод post который мы указали в html файле addpage.html
+        соответственно далее логика пытается сохранить новую запись в бд и в случае 
+        ошибки выкинет исключение но оставит форму заполненной тк возьмет данные из 
+        ранее заполненной формы благодаря конструкции form = AddPostForm(request.POST)
+    """
+    if request.method == 'POST':
+        form = AddPostForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('home')
+    else:
+        form = AddPostForm()
+    return render(request, 'women/addpage.html', {'form': form, 'title': 'Добавление статьи'})
+
+Чтобы добавить возможность к посту загружать фото 
+Сначала в атрибуте fields вложенного класса Meta формы AddPostForm в forms.py, добавим в список поле photo:
+fields = ['title', 'slug', 'content', 'photo', 'is_published', 'cat']
+
+class AddPostForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['cat'].empty_label = 'Категория не выбрана'
+
+    class Meta:
+        model = Women
+        fields = ['title', 'slug', 'content', 'photo', 'is_published', 'cat']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-input'}),
+            'content': forms.Textarea(attrs={'cols': 60, 'rows': 10})
+        }
+
+Затем, в функции представления addpage, при создании экземпляра формы, вторым аргументом передадим 
+список файлов, которые были переданы на сервер из формы:
+form = AddPostForm(request.POST, request.FILES)
+
+def addpage(request):
+    if request.method == 'POST':
+        form = AddPostForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            return redirect('home')
+    else:
+        form = AddPostForm()
+    return render(request, 'women/addpage.html', {'form': form, 'title': 'Добавление статьи'})
+
+в шаблоне addpage.html добавить в тег <form> атрибут enctype="multipart/form-data"
+обязательный, в случае передачи каких-либо файлов совместно с данными полей.
+
+{% extends 'women/base.html' %} 
+
+{% block content %}
+<h1>{{title}}</h1>
+
+<form action="{% url 'add_page' %}" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">добавить</button>
+</form>
+
+{% endblock%}
+---------------------------------------------------------------------------------------------------------
+Валидация полей формы
+Когда пользователь заполнил форму и отправил ее на сервер сперва данные проверяются с помощью методов is_valid() и save() по стандартным валидаторам а затем
+если они пройдены по пользовательским.
+
+Что бы создать валидатор в классе формы создаем метод который начинается с clean_ а после подчеркивания название поля по которому происходит валидация
+def clean_title(self):
+        title = self.cleaned_data["title"] Здесь мы вибираем поле по которому происходит валидация
+        if len(title) > 100:			Здесь происходит проверка и в случае несоответствия выходит исключение
+            raise ValidationError("Превышена длинна в 100 символов")
+        return title
+Не забываенм импортировать 
+from django.core.exceptions import ValidationError
