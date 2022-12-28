@@ -1,0 +1,64 @@
+В джанго есть модуль пагинатора
+
+У базового класса ListView уже встроен метод пагинации и все что нужно сделать это указать по сколько штук чего либо отображать на странице
+В данном случае мы будем отображать по 3 поста прописав атрибут класса представления paginate_by
+
+class WomenHome(DataMixin, ListView):
+
+    paginate_by = 3
+    model = Women
+    template_name = 'women/index.html'
+    context_object_name = 'posts'
+
+ListView автоматически передает в шаблон html страницы два обьекта paginator и page_obj
+Соответственно в базовом шаблоне чтобы сделать отображение навигации по страницам в виде цифр мы прописываем после блока контента 
+
+		{% for p in paginator.page_range %}
+              	        {% if page_obj.number == p %}
+                          <li class="page-num page-num-selected">{{ p }}</li>
+              	        {% elif p >= page_obj.number|add:-2 and p <= page_obj.number|add:2  %}
+                          <li class="page-num">
+                            <a href="?page={{ p }}">{{ p }}</a>
+                          </li>
+              	        {% endif %}
+                 {% endfor %}
+
+Тк у нас возникает дублирование кода в виде строчки paginate_by = 3 если мы хотим прописывать ее же в другие классы представлений то 
+мы пропишем ее в миксин класс
+
+----------------------------------------------------------------------------------------------------------------------
+Если мы хотим использовать пагинатор в функции представления то сперва его необходимо импортировать
+from django.core.paginator import Paginator
+
+затем  прописать в функции 
+def about(request):
+    contact_list = Women.objects.all()   Записываем в переменную то что будем пагинировать
+    paginator = Paginator(contact_list, 3) Применяем на ней наш пагинатор указывая сколько будет постов на странице
+    
+    page_number = request.GET.get('page') 	Получаем номер тукущей страницы которая отображается
+    page_obj = paginator.get_page(page_number) 	Формируем обьект который содержит список элементов текущей старнице
+
+    return render(request, 'women/about.html', {'page_obj' : page_obj , 'title': 'Обсайт'}) и передаем езфпу_щио на странцу обработки
+
+В html шаблоне прописываем следующую логику
+{% extends 'women/base.html' %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+{% for contact in page_obj %}
+    <p> {{ contact }} </p>
+{% endfor %}
+
+{% endblock content %}
+
+чтобы сделать постраничную навигацию в html шаблоне прописываем
+<nav>
+    <ul>
+        {% for p in page_obj.paginator.page_range %}	здесь методж page_range возвращает количество страниц в обьекте
+        <li>
+            <a href="?page={{ p }}">{{ p }}</a>		И мы отображаем эти цифры как ссылки на эти страницы
+        </li>
+        {% endfor %}
+    </ul>
+</nav>
